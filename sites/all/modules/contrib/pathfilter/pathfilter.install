@@ -1,0 +1,49 @@
+<?php
+
+/**
+ * @file
+ * Provides install and uninstall functions for pathfilter.
+ *
+ * Credits:
+ * @author Tom Kirkpatrick (drupal.org user "mrfelton"), www.kirkdesigns.co.uk
+ */
+
+/**
+ * Implements hook_install().
+ */
+function pathfilter_install() {
+  $allowed_protocols = _pathfilter_allowed_protocol_helper();
+  variable_set('filter_allowed_protocols', $allowed_protocols);
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function pathfilter_uninstall() {
+  // Delete all pathfilter variables
+  db_delete('variable')
+    ->condition('name', 'pathfilter_%%', 'LIKE')
+    ->execute();
+
+  // Disable pathfilter from all formats
+  db_delete('filter')
+    ->condition('module', 'pathfilter')
+    ->execute();
+
+  // Remove internal and files from allowed protocols.
+  $allowed_protocols = array_flip(_pathfilter_allowed_protocol_helper());
+  unset($allowed_protocols['internal']);
+  unset($allowed_protocols['files']);
+  variable_set('filter_allowed_protocols', array_flip($allowed_protocols));
+
+  cache_clear_all('variables', 'cache');
+  watchdog('pathfilter', 'Path filter module removed');
+}
+
+/**
+ * Helper function returns allowed protocols with internal and files added.
+ */
+function _pathfilter_allowed_protocol_helper() {
+  $allowed_protocols = variable_get('filter_allowed_protocols', array('http', 'https', 'ftp', 'news', 'nntp', 'telnet', 'mailto', 'irc', 'ssh', 'sftp', 'webcal', 'rtsp'));
+  return array_merge($allowed_protocols, array('internal', 'files'));
+}

@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * Implements hook_menu().
+ */
+function favicon_menu() {
+  // Override favicon.ico to forward to the theme's shortcut icon.
+  $items['favicon.ico'] = array(
+    'page callback' => 'favicon_shortcut_icon',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+  return $items;
+}
+
+/**
+ * Menu callback; forwards to the favicon.
+ */
+function favicon_shortcut_icon() {
+  drupal_theme_initialize();
+  $favicon = theme_get_setting('favicon_path');
+  if (!$favicon) {
+    drupal_not_found();
+  }
+  else {
+    $file = drupal_realpath($favicon);
+    header('Content-Type: image/x-icon');
+    header('Expires: 0');
+    readfile($file);
+  }
+}

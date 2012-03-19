@@ -1,0 +1,300 @@
+<?php
+
+/**
+ * @file
+ * This filter takes internal Drupal paths in double quotes, written as
+ * e.g. "internal:node/99", and replaces them with the appropriate absolute
+ * http URL using Drupal's url() function [1]. E.g. for a site located at
+ * http://example.com/mysite
+ *
+ *   "internal:node/99" becomes "http://example.com/mysite/node/99"
+ *
+ * Note: Because it uses url(), if a path alias exists, it will be substituted.
+ *
+ * [1] http://api.drupal.org/api/4.7/function/url
+ *
+ * Credits:
+ * @author Ray Zimmerman (drupal.org user "RayZ")
+ * @author Tom Kirkpatrick (drupal.org user "mrfelton"), www.kirkdesigns.co.uk
+ * @author George Montana Harkin (drupal.org user "harking") Auto internalization
+ * @author Shayne Huddleston (shayne.huddleston@oregonstate.edu) Fix to auto internailze all node fields
+ * @author Brett Lischalk (drupal.org user "blischalk")
+ * @author Jimmy Berry ("boombatower", http://drupal.org/user/214218)
+ */
+
+global $_pathfilter_replacement_patterns;
+$_pathfilter_replacement_patterns = array();
+$_pathfilter_replacement_patterns[] = '/(["\'])(internal):([^"#\?\']*)\??([^"#\']+)?#?([^"\']+)?\1/';
+$_pathfilter_replacement_patterns[] = '/(["\'])(files):([^"\']*)\1/';
+
+/**
+ * Implements hook_filter_info().
+ */
+function pathfilter_filter_info() {
+  return array(
+    'pathfilter' => array(
+      'title' => t('Converts internal Drupal paths to absolute URL\'s'),
+      'description' => t('This filter takes internal Drupal paths in double quotes, written as e.g. "internal:node/99", and replaces them with the appropriate absolute http URL.'),
+      'settings callback' => '_pathfilter_settings',
+      'default settings' => array(
+        'link_absolute' => TRUE,
+        'process_all' => TRUE,
+      ),
+      'process callback' => '_pathfilter_process',
+      'tips callback' => '_pathfilter_tips',
+    ),
+  );
+  return $filters;
+}
+
+function _pathfilter_process($text, $filter, $format, $langcode, $cache, $cache_id) {
+  $patterns = array();
+  $replacement = array();
+  $patterns[] = '/(["\'])(internal):([^"#\?\']+)\??([^"#\']+)?#?([^"\']+)?\1/';
+  $patterns[] = '/(["\'])(files):([^"\']+)\1/';
+  $func = "_pathfilter_process_handler";
+  // use the 'currying' technique to allow us to pass the format into
+  // the callback function.
+  $callback = _pathfilter_curry($func, 2);
+  return preg_replace_callback($patterns, $callback($filter->settings), $text);
+}
+
+/**
+ * Filter tips callback function for $filters[0] in hook_filter_info().
+ */
+function pathfilter_filter_tips_0($format, $long = FALSE) {
+  if ($long) {
+    $output = '<p>' . t('Internal paths in single or double quotes, written as "internal:node/99", for example, are replaced with the appropriate absolute URL or path. Given a site located at http://example.com/mysite, assuming clean URLs are enabled and "internal:admin/user" becomes "http://example.com/mysite/admin/user" and "internal:node/99" becomes "http://example.com/mysite/node/99". If \'node/99\' has a URL alias assigned, such as \'news/latest\' the alias will be substituted giving "http://example.com/mysite/news/latest".') . '</p>';
+    $output .= '<p>' . t('Paths to files in single or double quotes, written as "files:somefile.ext", for example, are replaced with the appropriate URL that can be used to download the file.') . '</p>';
+    return $output;
+  }
+}
+
+/*
+ * A 'currying' function that allows paramaters to be passed into the
+ * preg_replace_callback callback. Taken from
+ * http://ie2.php.net/manual/en/function.preg-replace-callback.php#88013
+ */
+function _pathfilter_curry($func, $arity) {
+  return create_function('', "
+    \$args = func_get_args();
+    if(count(\$args) >= $arity)
+      return call_user_func_array('$func', \$args);
+    \$args = var_export(\$args, 1);
+    return create_function('','
+      \$a = func_get_args();
+      \$z = ' . \$args . ';
+      \$a = array_merge(\$z,\$a);
+      return call_user_func_array(\'$func\', \$a);
+    ');
+  ");
+}
+
+function _pathfilter_process_handler($settings, $matches) {
+  switch ($matches[2]) {
+    case 'internal':
+      return _pathfilter_process_internal($settings, $matches); //Converts to alias form.
+      break;
+
+    case 'files':
+      return _pathfilter_process_files($settings, $matches);
+  }
+}
+
+function _pathfilter_process_internal($settings, $matches) {
+  $absolute = $settings['link_absolute'];
+  // Initialize an array to store additional matches to pass into the url function
+  // we can't access array offsets that aren't defined.
+  $url_array = array();
+  if (isset($matches[4])) { $url_array['query'] = $matches[4];}
+  if (isset($matches[5])) { $url_array['fragment'] = $matches[5];}
+  if (isset($absolute)) { $url_array['absolute'] = $absolute;}
+
+  // If we are going to convert our output to the aliased version ($convert_to_alias is set to TRUE),
+  // We need to pass 'alias' => true into url to tell it to not pass our URL through
+  // drupal_get_path_alias() thus keeping our 'node/#' format.
+  if (module_exists('i18n')) {
+    if ($path = drupal_get_normal_path($matches[3])) {
+      if (substr($path, 0, 5) == 'node/') {
+        $nid = substr($path, 5);
+      }
+    }
+    elseif (preg_match('/(node\/([0-9]+))$/', $matches[3], $match)) {
+      $nid = $match[2];
+    }
+    if (!empty($nid)) {
+      $languages = language_list('enabled');
+      $languages = $languages[1];
+      if (isset($language)) { $url_array['language'] = $languages[i18n_node_get_lang($match[2])];}
+      $link = url($match[1], $url_array);
+    }
+  }
+
+  $link = (isset($link)) ? $link : url($matches[3], $url_array);
+  return $matches[1] . $link . $matches[1];
+}
+
+function _pathfilter_process_files($settings, $matches) {
+  $absolute = $settings['link_absolute'];
+  $link = file_create_url($matches[3]);
+  $link = $absolute ? $link : substr($link, strlen($GLOBALS['base_url']));
+  return $matches[1] . $link . $matches[1];
+}
+
+function _pathfilter_tips($filter, $format, $long) {
+  if($long) {
+    $output = '<p>'. t('Internal paths in single or double quotes, written as "internal:node/99", for example, are replaced with the appropriate absolute URL or path. Given a site located at http://example.com/mysite, assuming clean URLs are enabled and "internal:admin/user" becomes "http://example.com/mysite/admin/user" and "internal:node/99" becomes "http://example.com/mysite/node/99". If \'node/99\' has a URL alias assigned, such as \'news/latest\' the alias will be substituted giving "http://example.com/mysite/news/latest".') .'</p>';
+    $output .= '<p>'. t('Paths to files in single or double quotes, written as "files:somefile.ext", for example, are replaced with the appropriate URL that can be used to download the file.') .'</p>';
+    return $output;
+  }
+  else {
+    return t('Internal paths in single or double quotes, written as "internal:node/99", for example, are replaced with the appropriate absolute URL or path. Paths to files in single or double quotes, written as "files:somefile.ext", for example, are replaced with the appropriate URL that can be used to download the file.');
+  }
+}
+
+function _pathfilter_settings($form, &$form_state, $filter, $format, $defaults, $filters) {
+  $filter->settings += $defaults;
+
+  $elements = array();
+  $elements['link_absolute'] = array(
+    '#type' => 'radios',
+    '#title' => t('Convert internal paths to'),
+    '#options' => array(
+      t('Absolute URL (including http://www.example.com)'),
+      t('Absolute path (relative to document root)')
+    ),
+    '#default_value' => $filter->settings['link_absolute'],
+    '#description' => t('Should internal paths be transformed to absolute URLs, such as %absolute_url or absolute paths, like %absolute_path. Note that your changes may not appear until the cache has been cleared.', array('%absolute_url' => 'http://www.example.com/my-page', '%absolute_path' => '/my-page')),
+  );
+  $elements['process_all'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable automatic url processing for attributes.'),
+    '#default_value' => $filter->settings['process_all'],
+    '#description' => t('When this option is enabled, all %element_list elements will automatically have the servername and base path of their src, href, and action urls replaced with %internal. On editing of these elements, all instances of %internal will be replaced with the site\'s base path (%current_base_path).', array('%element_list' => '<img>, <a>, <script>, <object>, and <form>', '%internal' => '\'internal:\'', '%current_base_path' => base_path())),
+  );
+  return $elements;
+}
+
+/**
+ * Replaces the internal: and files: in elements with the url for it
+ */
+function _pathfilter_replace_internal($settings, &$text) {
+  global $_pathfilter_replacement_patterns;
+  // use the 'currying' technique to allow us to pass the format into
+  // the callback function.
+  $callback = _pathfilter_curry(_pathfilter_process, 3);
+  $text = preg_replace_callback($_pathfilter_replacement_patterns, $callback($settings, FALSE), $text); //Converts to non-aliased form.
+}
+
+/**
+ * Internalizes all urls in a string automatically, doing the user's job for them.
+ */
+function _pathfilter_internalize($settings, &$item) {
+  // First we find all of the items that look like they need to be replaced.
+  $pattern = '/(<img|<a|<script|<object|<form|<param)[^\>]*>/i';
+  preg_match_all( $pattern, $item, $matches );
+  // Then we normalize the links of the items that matched and do
+  // 'files:' replacement and then 'internal:' replacement.
+  foreach ( $matches[0] as $match ) {
+    // Obtain the URL out of the html tag.
+    preg_match( '/(src=|href=|action=|data=|value=)(\'|")([^\'"]*)(\'|"|>)/', $match, $url );
+
+    // Do replacement with 'files:' if appropriate, 'internal:' otherwise.
+    $base_files_url_re = _pathfilter_base_files_url_re();
+    $replaced_path = preg_replace( $base_files_url_re, 'files:', $url[3], 1 );
+
+    if ($replaced_path == $url[3]) {
+      // 'files:' was not found, try 'internal:'.
+
+      // remove the base path
+      $base_url_re = _pathfilter_base_url_re();
+      $tmp_replaced_path = preg_replace( $base_url_re, '', $url[3], 1 );
+
+      // remove any language prefix or q= string
+      $tmp_replaced_path = preg_replace('#^[^/](.*/?)??(node/[0-9]*)$#', "$2", $tmp_replaced_path);
+
+      // ensure we have an internal path
+      $tmp_replaced_path = drupal_get_normal_path($tmp_replaced_path);
+
+      // If this link is to a node
+      preg_match('#^node/[0-9]*$#', $tmp_replaced_path, $matches);
+      if ($matches) {
+        // add the internal: prefix
+        $replaced_path = 'internal:' . $tmp_replaced_path;
+      }
+    }
+
+    // Update original string with changes, if needed.
+    if ($replaced_path != $url[3]) {
+      $item = preg_replace( '/(src=|href=|action=|data=|value=)(\'|")(' . preg_quote($url[3], '/') . ')(\'|"|>)/',
+        '$1$2' . $replaced_path . '$4',
+        $item, 1);
+    }
+  }
+}
+
+/**
+ * Generates the regular expression that will be used to find a url that should
+ * have 'internal:'.
+ */
+function _pathfilter_base_url_re() {
+  static $base_url_re;
+  if ($base_url_re != '') {
+    return $base_url_re;
+  }
+
+  global $base_url;
+  $base_path = base_path();
+
+  if ($base_path != '/') {
+    $tmp_base_url = str_replace($base_path, '', $base_url . '/');
+  }
+  else {
+    $tmp_base_url = $base_url;
+  }
+
+  $base_url_re = array(
+    0 => '/^(' . preg_quote($tmp_base_url, '/') . ')?' . preg_quote($base_path, '/') . '/',
+    1 => '/^(' . preg_quote($tmp_base_url, '/') . ')?' . preg_quote(drupal_encode_path($base_path), '/') . '/',
+  );
+
+  return $base_url_re;
+}
+
+/**
+ * Generates the regular expression that will be used to find a url that should
+ * have 'files:'.
+ */
+function _pathfilter_base_files_url_re() {
+  static $base_files_url_re;
+  if ($base_files_url_re != '') {
+    return $base_files_url_re;
+  }
+
+  //Taken from file_create_url() http://api.drupal.org/api/function/file_create_url
+  switch (variable_get('file_downloads', FILE_DOWNLOADS_PUBLIC)) {
+    case FILE_DOWNLOADS_PUBLIC:
+      $files_url = file_directory_path() . '/';
+      break;
+    case FILE_DOWNLOADS_PRIVATE:
+      $files_url = 'system/files/';
+      break;
+  }
+
+  global $base_url;
+  $base_path = base_path();
+
+  if ($base_path != '/') {
+    $tmp_base_url = str_replace($base_path, '', $base_url . '/');
+  }
+  else {
+    $tmp_base_url = $base_url;
+  }
+
+  $base_files_url_re = array(
+    0 => '/^(' . preg_quote($tmp_base_url, '/') . ')?' . preg_quote($base_path . $files_url, '/') . '/',
+    1 => '/^(' . preg_quote($tmp_base_url, '/') . ')?' . preg_quote(drupal_encode_path($base_path . $files_url), '/') . '/',
+  );
+
+  return $base_files_url_re;
+}

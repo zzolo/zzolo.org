@@ -1,0 +1,11 @@
+name = Path Filter
+description = "Input filter to convert internal paths, such as &quot;internal:node/99&quot;, to their corresponding absolute URL or relative path."
+package = Input filters
+core = 7.x
+
+; Information added by drupal.org packaging script on 2011-05-03
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "pathfilter"
+datestamp = "1304381999"
+

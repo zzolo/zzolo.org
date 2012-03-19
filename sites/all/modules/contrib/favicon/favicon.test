@@ -1,0 +1,57 @@
+<?php
+
+/**
+ * @file
+ * Tests for Favicon
+ */
+
+class FaviconTestCase extends DrupalWebTestCase {
+  public function getInfo() {
+    return array(
+      'name' => 'Favicon block functionality',
+      'description' => 'Test blocks in Favicon',
+      'group' => 'Favicon',
+    );
+  } // end of getInfo()
+  
+  public function setUp() {
+    parent::setUp('favicon');
+  } // end of setUp()
+  
+  public function testMenu() {
+    $info = module_invoke('favicon', 'menu');
+    
+    $this->assertEqual(1, count($info), t('Module defines one menu'));
+    $this->assertTrue(isset($info['favicon']), t('Module favicon exists.'));
+    $this->assertEqual(isset($info['favicon']['page callback']),'favicon_shortcut_icon', t('page callback link correct'));
+    $this->assertTrue($info['favicon']['access callback'], t('All can access callback'));
+    $this->assertEqual($info['favicon']['type'], MENU_CALLBACK, t('callback is menu callback'));
+  } // end of testMenu()
+  
+  // unable to test favicon_shortcut_icon() header redirect because
+  //  simple test does not use the theme settings from the site. It does something
+  //  else. I've got two problems:
+  //    1. the theme is set to use the default favicon - which is in misc/favicon.ico
+  //    2. the test case does not grab the output of header() and put in $this->headers, so
+  //       drupalGetHeader(s)() doesn't work - it iterates over an the undefined $this->headers.
+//   public function testShortcutIcon() {
+//     $default_favicon = theme_get_setting('default_favicon');
+//     $favicon_path = theme_get_setting('favicon_path');
+//     $this->assertEqual($default_favicon, 2, "default_favicon: '$default_favicon'");
+//     $this->assertEqual($favicon_path, 'barf', "favicon_path: '$favicon_path'");
+//     return;
+// 
+//     $data = module_invoke('favicon', 'shortcut_icon');
+// //     $headers = $this->drupalGetHeaders(TRUE);
+// // var_dump($headers);
+//     $location_header = $this->drupalGetHeader('Location', TRUE);
+//     if (!$favicon_path) {
+//       $favicon_path = 'not found';
+//     }
+// watchdog('favicon.test', "location_header: '$location_header'");
+// watchdog('favicon.test', "favicon: " . $favicon_path);
+// 
+//     $this->assertEqual($location_header, 'Location: ' . $favicon_path,
+//       t('favicon_shortcut_icon() redirects to ') . "'" . $favicon_path . "' / '$location_header'");
+//   } // end of testShortcutIcon()
+}

@@ -1,0 +1,141 @@
+<?php
+
+/**
+ * @file
+ * Tests for Path Filter
+ * 
+ * Credits:
+ * @author Tom Kirkpatrick (drupal.org user "mrfelton"), www.kirkdesigns.co.uk
+ */
+
+define(PATHFILTER_OK, 1);
+define(PATHFILTER_NOT_OK, 0);
+
+class PathfilterTestCase extends DrupalWebTestCase {
+    
+  public static function getInfo() {
+    return array(
+      'name' => t('Path Filter tests'),
+      'desc' => t('Tests Path Filter link parsing'),
+      'group' => t('Path Filter')
+    );
+  }
+
+  /**
+   * Implementation of setUp().
+   */
+  public function setUp() {
+    parent::setUp('pathfilter');
+    $privileged_user = $this->drupalCreateUser(array('create story content'));
+    $this->drupalLogin($privileged_user);
+    variable_set('clean_url', 1);
+  }
+  
+  function CompareSnippets($snippets) {
+    foreach ($snippets as $before => $after) {
+      $result = pathfilter_filter('process', 0, 1, $before);    
+      if ($after) {
+        $this->assertTrue($result == $after, 'Parsing: '.$before .'<br/> Expected: '. $after. '<br/> Got: '. $result);
+      }
+      else {
+        $this->assertTrue($result == $before, 'Pathfilter should not parse: '. $before.'<br/> Got: '.$result);
+      }
+    }
+  }
+
+  /**
+  * test_pathfilter
+  **/
+  public function testInternalRelative() {
+    variable_set('pathfilter_link_absolute_1', 0);
+
+    $settings = array(
+     'type' => 'story',
+     'language' => '',
+     'uid' => '1',
+     'status' => '1',
+     'promote' => '1',
+     'moderate' => '0',
+     'sticky' => '0',
+     'tnid' => '0',
+     'translate' => '0',
+     'title' => 'Test Pathfilter',
+     'body' => '',
+     'log' => '',
+     'format' => '1',
+    );
+
+    // Create node for testing.
+    $node = $this->drupalCreateNode($settings);
+
+    $snippets = array(      
+      '"internal:admin/user"'                 => '"'. url('admin/user') .'"',
+      '\'internal:admin/user\''               => "'". url('admin/user') ."'", // single quotes
+      '"internal:node/nid"'                   => '"'. url('node/nid') .'"',
+      '"internal:node/'. $node->nid .'"'      => '"'. url('node/'. $node->nid) .'"',
+      '"internal:node/nid?page=1#section2"'   => '"'. url('node/nid', array('query' => 'page=1', 'fragment' => 'section2')) .'"',
+    );
+    $this->CompareSnippets($snippets);
+  }
+
+  /**
+  * test_pathfilter
+  * 
+  * TODO: Write a description of the tests!
+  **/
+  function testInternalAbsolute() {
+    global $base_url;
+    variable_set('pathfilter_link_absolute_1', 1);
+
+    // Create node for testing.
+    $node = $this->drupalCreateNode();
+
+    $snippets = array(
+      '"internal:admin/user"'                 => '"'. url($base_url .'/admin/user') .'"',
+      '\'internal:admin/user\''               => '\''. url($base_url .'/admin/user') .'\'', // single quotes
+      '"internal:node/nid"'                   => '"'. url($base_url .'/node/nid') .'"',
+      '"internal:node/'. $node->nid .'"'        => '"'. url($base_url .'/node/'. $node->nid) .'"',
+      '"internal:node/nid?page=1#section2"'   => '"'. url($base_url .'/node/nid', array('query' => 'page=1', 'fragment' => 'section2')) .'"',
+    );
+    $this->CompareSnippets($snippets);
+  }
+
+  /**
+  * test_pathfilter
+  * 
+  * TODO: Write a description of the tests!
+  **/
+  function testFiles() {
+    global $base_url;
+
+    $snippets = array(
+      "'files:images/somefile.jpg'" => "'". file_create_url('images/somefile.jpg') ."'", // single quotes
+      '"files:images/somefile.jpg"' => '"'. file_create_url('images/somefile.jpg') .'"', // double quotes
+    );
+    $this->CompareSnippets($snippets);
+  }
+  
+  /**
+  * test_pathfilter
+  * 
+  * TODO: Write a description of the tests!
+  **/
+  function testFilesInvalidMatches() {
+    $snippets = array(
+      '"internal:admin/user\''              => PATHFILTER_NOT_OK, // mismatched quotes
+      '\'internal:admin/user"'              => PATHFILTER_NOT_OK, // mismatched quotes
+      '"files:images/somefile.jpg'."'"      => PATHFILTER_NOT_OK, // mismatched quotes
+    );
+    $this->CompareSnippets($snippets);
+  }
+  
+  /**
+  * test with clean URL's disabled
+  **/
+  function testNoCleanURLs() {
+    variable_set('clean_url', 0);
+    $this->testInternalRelative();
+    $this->testInternalAbsolute();
+    $this->testFiles();
+  }
+}

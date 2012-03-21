@@ -13,7 +13,7 @@ function geocode() {
   $processor_name = array_shift($args);
   $processor = ctools_get_plugins('geocode', 'geocode_handler', $processor_name);
   $geometry = call_user_func_array($processor['callback'],$args);
-
+dpm($args, $processor_name, $processor, $geometry);
   return $geometry;
 }
 

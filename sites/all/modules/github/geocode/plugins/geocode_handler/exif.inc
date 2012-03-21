@@ -13,10 +13,12 @@ if (function_exists('exif_read_data')) {
 
 function geocode_exif($filepath) {
 	geocode_load_geophp();
+	dpm($filepath);
   if ($data = exif_read_data($filepath)) {
     if (!isset($data['GPSLatitudeRef'])) return FALSE;
     $lat = geocode_exif_from($data['GPSLatitudeRef'], $data['GPSLatitude']);
     $lon = geocode_exif_from($data['GPSLongitudeRef'], $data['GPSLongitude']);
+    dpm($data, $lat, $lon);
     $point = new Point($lon, $lat);
     return $point;
   }

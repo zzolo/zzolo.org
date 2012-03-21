@@ -5,10 +5,9 @@
  * @return string html
  */
 function exif_admin_settings() {
-  drupal_add_css(drupal_get_path('module', 'exif') .'/exif.admin.css');
-  $filepath = drupal_get_path('module', 'exif') .'/sample.jpg';
-  $exif = _exif_get_class();
-  $fullmetadata = $exif->readMetadataTags($filepath);
+  $filepath = drupal_get_path('module', 'exif') .'/sample.jpg';  
+  $url = url($filepath);
+	
   $output = '';
   $output .= '<h3>' . t('About') . '</h3>';
   $output .= '<p>' . t('The Exif module allows you :');
@@ -20,8 +19,8 @@ function exif_admin_settings() {
   $output .= '<dl>';
   $output .= '<dt>' . t('Creating vocabularies') . '</dt>';
   $output .= '<dd>' . t('Users with sufficient <a href="@perm">permissions</a> can create <em>vocabularies</em> through the <a href="@taxo">Taxonomy page</a>. The page listing the terms provides a drag-and-drop interface for controlling the order of the terms and sub-terms within a vocabulary, in a hierarchical fashion. A <em>controlled vocabulary</em> classifying music by genre with terms and sub-terms could look as follows:', array('@taxo' => url('admin/structure/taxonomy'), '@perm' => url('admin/config/people/permissions', array('fragment'=>'module-taxonomy'))));
-  $output .= t('This module will automatically create in the chosen vocabulary (by default "Images"), the folowing structure:');
-  $output .= '<ul><li>' . t ('<em>vocabulary</em>: Images'); '</li>';
+  $output .= t('This module will automatically create in the chosen vocabulary (by default "Photographies\' metadata"), the following structure:');
+  $output .= '<ul><li>' . t ('<em>vocabulary</em>: Photographies\'metadata').'</li>';
   $output .= '<ul><li>' . t('<em>term</em>: iptc') . '</li>';
   $output .= '<ul><li>' . t('<em>sub-term</em>: keywords') . '</li>';
   $output .= '<ul><li>' . t('<em>sub-term</em>: Paris') . '</li>';
@@ -51,9 +50,17 @@ function exif_admin_settings() {
   $output .=  t('if you want to get all the values, do not forget to configure the field to use unlimited number of values (by default, set to 1).');
   $output .= '</dd>';
   $output .= '</dl>';
-  $output .= '<h3>' . t('Example of field name and the metadata extracted') . '</h3>';
+  $output .= '<div class="sample-image">';
+  $output .= '<h3 class="sample-image">';
+  $output .= t('Example of field name and the metadata extracted');
+  $output .= '</h3>';
+  $output .= '<img class="sample-image" src="'.$url.'"/>';
+  $output .= '</div>';
   $rows = array();
   $help = '';
+  drupal_add_css(drupal_get_path('module', 'exif') .'/exif.admin.css');
+  $exif = _exif_get_class();
+  $fullmetadata = $exif->readMetadataTags($filepath);  
   if(is_array($fullmetadata)){
     foreach ($fullmetadata as $section => $section_data) {
       $rows[] = array('data'=>array($section,$help), 'class' => array('tag_type'));
@@ -63,7 +70,7 @@ function exif_admin_settings() {
           if (is_array($value)) {
             foreach($value as $innerkey => $innervalue) {
               if( ($innerkey+1) != count($value) ) {
-                $resultTag.=$innervalue.", ";
+                $resultTag.=$innervalue."; ";
               } else {
                 $resultTag.=$innervalue;
               }
@@ -78,7 +85,7 @@ function exif_admin_settings() {
   }
   $header = array(t('Key'),t('Value'));
   $output .= '<p>';
-  $variables = array ("header" => $header, "rows" => $rows, "attributes" => array(), "caption" => array(),"sticky" => array(), "colgroups" => array(), "empty" => array() );
+  $variables = array ("header" => $header, "rows" => $rows, "attributes" => array(), "caption" => "","sticky" => array(), "colgroups" => array(), "empty" => array() );
   $output .= theme_table($variables);
   $output .= '</p>';
   return $output;
@@ -158,8 +165,9 @@ function exif_admin_settings_form() {
 		'#default_value'=>variable_get('exif_vocabulary',array()),
 		'#description'=> t('Select vocabulary which should be used for itpc & exif data.'),
   );
-  //TODO: add a button to create a vocabulary "images'metadata" (exif,iptc and xmp data contains in jpef file)
-  //TODO : add a button to create an Photo node with default exif field (title,model,keywords) and default behavior but 'promoted to front'
+  
+  //TODO: add a button to create a vocabulary "photographies'metadata" (exif,iptc and xmp data contains in jpef file)
+  //TODO : add a button to create an Photography node with default exif field (title,model,keywords) and default behavior but 'promoted to front'
   //TODO : Check if the media module is install to add automatically the image type active and add active default exif field (title,model,keywords).
   return system_settings_form($forms);
 }

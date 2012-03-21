@@ -62,44 +62,71 @@ Class Exif {
    * Dates should be parsed nicely.
    */
   function _reformat($data) {
-    $date_array = array('datetimeoriginal', 'datetime', 'datetimedigitized');
-
     // Make the key lowercase as field names must be.
     $data = array_change_key_case($data, CASE_LOWER);
     foreach ($data as $key => &$value) {
       if (is_array($value))  {
         $value = array_change_key_case($value, CASE_LOWER);
-        foreach ($value as $innerkey => $innervalue) {
-          if (!drupal_validate_utf8($innervalue)) {
-            $innervalue=utf8_encode($innervalue);
-          }
-          $innervalue=check_plain($innervalue);
+        switch ($key) {
+          // GPS values
+          case 'gps_latitude':
+          case 'gps_longitude':
+          case 'gpslatitude':
+          case 'gpslongitude':
+            $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
+            break;
         }
       } else {
-        if ($key=='usercomment' && $this->startswith($value,'UNICODE')) {
-          $value=substr($value,8);
-        }
-        if ($key=='title' || $key=='comment' || $key=='usercomment' || $key=='comments' || $key=='author' || $key=='subject') {
-          $value=$this->_exif_reencode_to_utf8($value);
-        } elseif ($key == 'gps_latitude') {
-          $value = $this->_exif_reformat_DMS2D(check_plain($value), $data['gps_gpslatituderef']);
-        }
-        elseif ($key == 'gps_longitude') {
-          $value = $this->_exif_reformat_DMS2D(check_plain($value), $data['gps_gpslongituderef']);
-        }
-        elseif (in_array($key, $date_array)) {
-          // In case we get a datefield, we need to reformat it to the ISO 8601 standard:
-          // which will look something like 2004-02-12T15:19:21
-          $date_time = explode(" ", $value);
-          $date_time[0] = str_replace(":", "-", $date_time[0]);
-          if (variable_get('exif_granularity', 0) == 1) {
-            $date_time[1] = "00:00:00";
-          }
-          $value = implode("T", $date_time);
-        } else {
-          if (!drupal_validate_utf8($value)) {
-            $value=utf8_encode($value);
-          }
+	if (!drupal_validate_utf8($value)) {
+	    $value=utf8_encode($value);
+	}
+        switch ($key) {
+          // String values.
+          case 'usercomment':
+			if ($this->startswith($value,'UNICODE')) {
+				$value=substr($value,8);
+        	}
+        	break;
+          // Date values.
+          case 'filedatetime':
+          	$value=date('c',$value);
+          	break;
+          case 'datetimeoriginal':
+          case 'datetime':
+          case 'datetimedigitized':
+            // In case we get a datefield, we need to reformat it to the ISO 8601 standard:
+            // which will look something like 2004-02-12T15:19:21
+            $date_time = explode(" ", $value);
+            $date_time[0] = str_replace(":", "-", $date_time[0]);
+            if (variable_get('exif_granularity', 0) == 1) {
+              $date_time[1] = "00:00:00";
+            }
+            $value = implode("T", $date_time);
+            break;
+          // GPS values.
+          case 'gpsaltitude':
+          case 'gpsimgdirection':
+            $value = $this->_exif_reformat_DMS2D($value, $data[$key . 'ref']);
+            break;
+          // Flash values.
+          case 'flash':
+            $flash_descriptions = $this->getFlashDescriptions();
+            if (isset($flash_descriptions[$value])) {
+              $value = $flash_descriptions[$value];
+            }
+	    break;
+           // Exposure values.
+           case 'exposuretime':
+             if (strpos($value, '/') !== FALSE) {
+               $value = $this->_normalise_fraction($value) . 's';
+             }
+             break;
+           // Focal Length values.
+           case 'focallength':
+             if (strpos($value, '/') !== FALSE) {
+               $value = $this->_normalise_fraction($value) . 'mm';
+             }
+             break;
         }
       }
     }
@@ -125,20 +152,53 @@ Class Exif {
     return $result;
   }
 
+   /**
+    * Normalise fractions.
+    */
+   function _normalise_fraction($fraction) {
+     $parts = explode('/', $fraction);
+     $top = $parts[0];
+     $bottom = $parts[1];
+ 
+     if ($top > $bottom) {
+       // Value > 1
+       if (($top % $bottom) == 0) {
+         $value = ($top / $bottom);
+       } else {
+         $value = round(($top / $bottom), 2);
+       }
+     } else if ($top == $bottom) {
+       // Value = 1
+       $value = '1';
+     } else {
+       // Value < 1
+       if ($top == 1) {
+         $value = '1/' . $bottom;
+       }
+       else {
+         $value = '1/' . round(($bottom / $top) ,0);
+       }
+     }
+     return $value;
+   }  
+
   /**
    * Helper function to change GPS co-ords into decimals.
    */
   function _exif_reformat_DMS2D($value, $ref) {
-    $parts = split('/', $value[0]);
-    $dec = (float) ((float) $parts[0] /  (float) $parts[1]);
-
-    $parts = split('/', $value[1]);
-    $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / 60);
-
-    $parts = split('/', $value[2]);
-    $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / 3600);
-
-    if ($ref == 'S' || $ref == 'W') $dec *= -1;
+    if (!is_array($value)) {
+      $value = array($value);
+    }
+    $dec = 0;
+    $granularity = 0;
+    foreach ($value as $element) {
+      $parts = explode('/', $element);
+      $dec += (float) (((float) $parts[0] /  (float) $parts[1]) / pow(60, $granularity));
+      $granularity++;
+    }
+    if ($ref == 'S' || $ref == 'W') {
+      $dec *= -1;
+    }
     return $dec;
   }
 
@@ -236,7 +296,12 @@ Class Exif {
         } else {
           $resultTag = $value;
         }
-        $arSmallIPTC[$humanReadableKey[$key]] = $resultTag;
+        if (array_key_exists($key, $humanReadableKey)) {
+        	$humanKey = $humanReadableKey[$key];
+        	$arSmallIPTC[$humanKey] = $resultTag;
+        } else {
+        	$arSmallIPTC[$key] = $resultTag;
+        }
       }
     }
     if ($enable_sections) {
@@ -570,6 +635,8 @@ Class Exif {
 "gps_exifimagewidth",
 "gps_exifimagelength",
 "gps_interoperabilityoffset",
+"gps_gpsimgdirectionref",
+"gps_gpsimgdirection",
 "gps_focalplanexresolution",
 "gps_focalplaneyresolution",
 "gps_focalplaneresolutionunit",
@@ -919,6 +986,36 @@ Class Exif {
     }
     $fields = array_merge($exif_keys,$iptc_keys,$xmp_keys);
     return $fields;
+  }
+
+  /**
+   * Convert 'Flash' values to their human-readable descriptions.
+   */
+  public function getFlashDescriptions() {
+    return array(
+      '0' => t('Flash did not fire.'),
+      '1' => t('Flash fired.'),
+      '5' => t('Strobe return light not detected.'),
+      '7' => t('Strobe return light detected.'),
+      '9' => t('Flash fired, compulsory flash mode'),
+      '13' => t('Flash fired, compulsory flash mode, return light not detected'),
+      '15' => t('Flash fired, compulsory flash mode, return light detected'),
+      '16' => t('Flash did not fire, compulsory flash mode'),
+      '24' => t('Flash did not fire, auto mode'),
+      '25' => t('Flash fired, auto mode'),
+      '29' => t('Flash fired, auto mode, return light not detected'),
+      '31' => t('Flash fired, auto mode, return light detected'),
+      '32' => t('No flash function'),
+      '65' => t('Flash fired, red-eye reduction mode'),
+      '69' => t('Flash fired, red-eye reduction mode, return light not detected'),
+      '71' => t('Flash fired, red-eye reduction mode, return light detected'),
+      '73' => t('Flash fired, compulsory flash mode, red-eye reduction mode'),
+      '77' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light not detected'),
+      '79' => t('Flash fired, compulsory flash mode, red-eye reduction mode, return light detected'),
+      '89' => t('Flash fired, auto mode, red-eye reduction mode'),
+      '93' => t('Flash fired, auto mode, return light not detected, red-eye reduction mode'),
+      '95' => t('Flash fired, auto mode, return light detected, red-eye reduction mode'),
+    );
   }
 
 

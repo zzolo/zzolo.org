@@ -150,9 +150,20 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
 
 	  $this->addExistingFieldToContentType($type,'photo','image','image_image');
 	  $this->addNewFieldToContentType($type,'model','exif_model','taxonomy_term_reference','exif_readonly');
-	  $this->addNewFieldToContentType($type,'keywords','iptc_keywords','text','exif_readonly',array(),array("field[cardinality]" => -1));
-	  $this->manageDisplay($type, "exif_model","inline","taxonomy_term_reference_link");
-	  $this->manageDisplay($type, "iptc_keywords","inline","text_plain");
+	  $this->addNewFieldToContentType($type,'keywords','iptc_keywords','taxonomy_term_reference','exif_readonly',array(),array("field[cardinality]" => -1));
+	  $this->addNewFieldToContentType($type,'usercomment','exif_usercomment','text','exif_readonly');
+	  $this->addNewFieldToContentType($type,'latitude','gps_gpslatitude','text','exif_readonly');
+	  $this->addNewFieldToContentType($type,'longitude','gps_gpslongitude','text','exif_readonly');
+	  $this->addNewFieldToContentType($type,'latituderef','gps_gpslatituderef','text','exif_readonly');
+	  $this->addNewFieldToContentType($type,'longituderef','gps_gpslongituderef','text','exif_readonly');	 
+	  $this->addNewFieldToContentType($type,'artist','ifd0_artist','taxonomy_term_reference','exif_readonly'); 
+	  $this->addNewFieldToContentType($type,'title','ifd0_title','text','exif_readonly');
+	  $this->addNewFieldToContentType($type,'flash','exif_flash','text','exif_readonly');
+	  $this->addNewFieldToContentType($type,'date','exif_datetime','text','exif_readonly');
+	  $this->addNewFieldToContentType($type,'DateObject','ifd0_datetime','datetime','exif_readonly');
+	  $this->addNewFieldToContentType($type,'fileDate','exif_filedatetime','text','exif_readonly');
+	  $this->addNewFieldToContentType($type,'fileDateObject','ifd0_filedatetime','datetime','exif_readonly');
+	  
 	  $this->activateMetadataOnObjectTypes(array($type->type));
 
 	  $this->drupalGet("admin/structure/types/manage/photo/fields");
@@ -196,7 +207,7 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
     $this->drupalGet("node/{$node->nid}/edit");
     //check field settings are hidden.
     $this->assertRaw("exif.css");
-    //assert hiddent field are present
+    //assert hidden field are present
     $this->assertField("field_iptc_keywords[und][0][tid]","hidden field keywords is present","Exif");
     $this->assertField("field_exif_model[und][0][tid]","hidden field model is present","Exif");
     $this->assertResponse(200, t('User is allowed to edit the content.'),'Exif');
@@ -221,11 +232,34 @@ abstract class ExifFunctionalTestCase extends DrupalWebTestCase {
     //check for label
     $this->assertText("model");
     $this->assertText("keywords");
+    $this->assertText("latitude");
+    $this->assertText("longitude");
+    $this->assertText("comment");
+    $this->assertText("artist");
+    $this->assertText("title");
+    $this->assertText("flash");
+    $this->assertText("date");
+    $this->assertText("DateObject");
+    $this->assertText("fileDate");
+    $this->assertText("fileDateObject");
     //check for values
     $this->assertText("Canon EOS 350D DIGITAL","model value is correct","Exif");
     $this->assertText("annika","keyword n°1 is correct","Exif");
     $this->assertText("geburtstag","keyword n°2 is correct","Exif");
-    $this->assertText("O'Brien","keyword n°3 is correct (apostrophe in text)","Exif");
+    $this->assertText("O&#039;Brien","keyword n°3 is correct (apostrophe in text)","Exif");
+    $this->assertText("51.2977","latitude is correct","Exif");
+    $this->assertText("12.2206","longitude is correct","Exif");
+    $this->assertText("ich bin ein kleiner kommentar","comment is correct","Exif");
+    $this->assertNoText("UNICODEich bin ein kleiner kommentar","comment is correct","Exif");
+    $this->assertText("Raphael Schär","artist is correct","Exif");
+    $this->assertText("Der Titel","title is correct","Exif");
+    $this->assertText("Flash fired, compulsory flash mode","flash is correct","Exif");
+    
+    $this->assertText("2009-01-23T08:52:43","date (wihtout Date module) is correct","Exif");
+    $this->assertText("2009/01/23 08:52:43","date (with Date module) is correct","Exif");
+    
+    $this->assertText("2011-11-05T21:39:10+01:00","file date (wihtout Date module) is correct","Exif");
+    $this->assertText("2011/11/05 21:39:10","file date (with Date module) is correct","Exif");    
   }
 
 }

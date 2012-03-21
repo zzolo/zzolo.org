@@ -1,7 +1,9 @@
 <?php
+include_once drupal_get_path('module', 'exif') .'/exif_functionaltests.php';
+
 class TestsWithDefaultEnvironmentTestCase extends ExifFunctionalTestCase {
   public function initModules() {
-    return array('exif');
+    return array('exif','date');
   }
 
   public static function getInfo() {

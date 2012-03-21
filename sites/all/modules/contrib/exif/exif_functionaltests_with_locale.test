@@ -1,7 +1,9 @@
 <?php
+include_once drupal_get_path('module', 'exif') .'/exif_functionaltests.php';
+
 class TestsWithLocaleModuleActivatedTestCase extends ExifFunctionalTestCase {
   public function initModules() {
-    return array('exif','locale');
+    return array('exif','date','locale');
   }
 
   public static function getInfo() {

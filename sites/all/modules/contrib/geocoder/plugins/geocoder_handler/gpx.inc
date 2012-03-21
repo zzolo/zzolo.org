@@ -16,27 +16,29 @@
 $plugin = array(
   'title' => t("GPX"),
   'description' => t('Get the geomtry of a GPX string or file'),
-  'callback' => 'geocode_gpx',
-  'field_types' => array('text','text_long','file','computed'),
-  'field_callback' => 'geocode_gpx_field',
+  'callback' => 'geocoder_gpx',
+  'field_types' => array('text', 'text_long', 'file', 'computed'),
+  'field_callback' => 'geocoder_gpx_field',
 );
 
 /**
  * Process GPX
  */
-function geocode_gpx($gpx_string) {
-  geocode_load_geophp();
-  return geoPHP::load($gpx_string,'gpx');
+function geocoder_gpx($gpx_string, $options = array()) {
+  geophp_load();
+  return geoPHP::load($gpx_string, 'gpx');
 }
 
-function geocode_gpx_field($field, $field_item) {
+function geocoder_gpx_field($field, $field_item) {
   if ($field['type'] == 'text' || $field['type'] == 'text_long' || $field['type'] == 'computed') {
-  	return geocode_gpx($field_item['value']);
+    return geocoder_gpx($field_item['value']);
   }
   if ($field['type'] == 'file') {
-  	$file = file_load($field_item['fid']);
-  	$gpx = file_get_contents($file->uri);
-  	return geocode_gpx($gpx);
+    if ($field_item['fid']) {
+      $file = file_load($field_item['fid']);
+      $gpx = file_get_contents($file->uri);
+      return geocoder_gpx($gpx);
+    }
   }
 }
 

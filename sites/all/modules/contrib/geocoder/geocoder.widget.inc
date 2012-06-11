@@ -194,14 +194,18 @@ function geocoder_field_attach_presave($entity_type, $entity) {
             }
           }
           
-          if (empty($geometries)) $values = array(NULL);
+          if (empty($geometries)) {
+            // This field has no data, so set the field to an empty array in
+            // order to delete its saved data.
+            $values = array(NULL);
+            $entity->{$field_instance['field_name']} = array();
+          }
           else {
             // Resolve multiple-values - get back values from our delta-resolver
             $values = geocoder_widget_resolve_deltas($geometries, $delta_handling, $target_type);
+            // Set the values - geofields do not support languages
+            $entity->{$field_instance['field_name']}[LANGUAGE_NONE] = $values;
           }
-          
-          // Set the values - geofields do not support languages
-          $entity->{$field_instance['field_name']}[LANGUAGE_NONE] = $values;
         }
       }
     }
@@ -341,9 +345,28 @@ function geocoder_widget_parse_addressfield($field_item) {
   if (!empty($field_item['administrative_area']))     $address .= $field_item['administrative_area'] . ',';
   if (!empty($field_item['sub_administrative_area'])) $address .= $field_item['sub_administrative_area'] . ',';
   if (!empty($field_item['country']))                 $address .= $field_item['country'] . ',';
-  if (!empty($field_item['postal_code']))             $address .= $field_item['postal_code'] . ',';
   
   $address = rtrim($address, ', ');
   
+  return $address;
+}
+
+/**
+ * Geocoder Widget - Parse a location field
+ */
+function geocoder_widget_parse_locationfield($field_item) {
+  $address = '';
+  if (!empty($field_item['name']))        $address .= $field_item['name'] . ',';
+  if (!empty($field_item['street']))      $address .= $field_item['street'] . ',';
+  if (!empty($field_item['additional']))  $address .= $field_item['additional'] . ',';
+  if (!empty($field_item['city']))        $address .= $field_item['city'] . ',';
+  if (!empty($field_item['province']) && function_exists('location_province_name')) {
+    $province_fullname = location_province_name($field_item['country'], $field_item['province']);
+    $address .=  $province_fullname . ',';
+  }
+  if (!empty($field_item['country']))     $address .= $field_item['country'] . ',';
+  
+  $address = rtrim($address, ', ');
+
   return $address;
 }

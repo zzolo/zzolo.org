@@ -57,7 +57,7 @@ function _dd_generate($min, $max, $int = FALSE) {
     $func = 'mt_rand';
   }
   $number = $func($min, $max);
-  if ($int) {
+  if ($int || abs($number) === 180) {
     return $number;
   }
   $decimals = $func(1, pow(10, 5)) / pow(10, 5);
@@ -97,7 +97,7 @@ function _random_point() {
 
 function _wkt_generate_point($point = FALSE) {
   $point = $point ? $point : _random_point();
-  return '(' . implode(' ', $point) . ')';
+  return implode(' ', $point);
 }
 
 function _wkt_generate_multipoint() {

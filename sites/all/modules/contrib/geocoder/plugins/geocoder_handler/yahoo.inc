@@ -14,7 +14,7 @@ $plugin = array(
   'title' => t("Yahoo Placefinder"),
   'description' => t('Geocodes via Yahoo Placefinder'),
   'callback' => 'geocoder_yahoo',
-  'field_types' => array('text', 'text_long', 'addressfield', 'text_with_summary', 'computed', 'taxonomy_term_reference'),
+  'field_types' => array('text', 'text_long', 'addressfield', 'location', 'text_with_summary', 'computed', 'taxonomy_term_reference'),
   'field_callback' => 'geocoder_yahoo_field',
   'terms_of_service' => 'http://developer.yahoo.com/geo/placefinder/',
 );
@@ -38,6 +38,10 @@ function geocoder_yahoo_field($field, $field_item) {
   }
   if ($field['type'] == 'addressfield') {
     $address = geocoder_widget_parse_addressfield($field_item);
+    return geocoder_yahoo($address);
+  }
+  if ($field['type'] == 'location') {
+    $address = geocoder_widget_parse_locationfield($field_item);
     return geocoder_yahoo($address);
   }
   if ($field['type'] == 'taxonomy_term_reference') {

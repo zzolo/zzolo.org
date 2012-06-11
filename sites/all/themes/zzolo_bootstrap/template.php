@@ -69,7 +69,6 @@ function zzolo_bootstrap_preprocess_page(&$variables) {
     // a bad idea.
     if (variable_get('flippy_' . $type->type, FALSE)) {
       $list = flippy_build_list($variables['node']);
-      dpm($list);
       if ($list['prev']) {
         $options = array(
           'html' => TRUE,

@@ -69,6 +69,7 @@ function zzolo_bootstrap_preprocess_page(&$variables) {
     // a bad idea.
     if (variable_get('flippy_' . $type->type, FALSE)) {
       $list = flippy_build_list($variables['node']);
+      dpm($list);
       if ($list['prev']) {
         $options = array(
           'html' => TRUE,
@@ -78,7 +79,7 @@ function zzolo_bootstrap_preprocess_page(&$variables) {
             ),
           ),
         );
-        $variables['flippy_prev'] = l('&laquo;', 'node/' . $list['prev'], $options);
+        $variables['flippy_prev'] = l('&laquo;', 'node/' . $list['prev']['nid'], $options);
       }
       if ($list['next']) {
         $options = array(
@@ -89,7 +90,7 @@ function zzolo_bootstrap_preprocess_page(&$variables) {
             ),
           ),
         );
-        $variables['flippy_next'] = l('&raquo;', 'node/' . $list['next'], $options);
+        $variables['flippy_next'] = l('&raquo;', 'node/' . $list['next']['nid'], $options);
       }
     }
   }

@@ -13,18 +13,24 @@
  * - $last_link: A formatted <A> link to the last item.
  *
  * Other variables:
- * - $current: The Node ID of the current node.
- * - $first: The Node ID of the first node.
- * - $prev: The Node ID of the previous node.
- * - $next: The Node ID of the next node.
- * - $last: The Node ID of the last node.
+ * - $current['nid']: The Node ID of the current node.
+ * - $first['nid']: The Node ID of the first node.
+ * - $prev['nid']: The Node ID of the previous node.
+ * - $next['nid']: The Node ID of the next node.
+ * - $last['nid']: The Node ID of the last node.
  *
- * @see flippy_preprocess_custom_pager()
+ * - $current['title']: The Node title of the current node.
+ * - $first['title']: The Node title of the first node.
+ * - $prev['title']: The Node title of the previous node.
+ * - $next['title']: The Node title of the next node.
+ * - $last['title']: The Node title of the last node.
+ *
+ * @see template_preprocess_flippy()
  */
 ?>
 <ul class="flippy">
-<li class="first"><?php print $first_link; ?></li>
-<li class="previous"><?php print $previous_link; ?></li>
-<li class="next"><?php print $next_link; ?></li>
-<li class="last"><?php print $last_link; ?></li>
+	<?php if (!empty($first_link)): ?><li class="first"><?php print $first_link; ?></li><?php endif; ?>
+	<li class="previous"><?php print $previous_link; ?></li>
+	<li class="next"><?php print $next_link; ?></li>
+	<?php if (!empty($last_link)): ?><li class="last"><?php print $last_link; ?></li><?php endif; ?>
 </ul>

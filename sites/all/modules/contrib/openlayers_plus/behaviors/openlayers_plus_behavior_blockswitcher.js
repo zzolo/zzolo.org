@@ -1,63 +1,23 @@
-(function($) {
 /**
  * Implementation of Drupal behavior.
  */
-Drupal.behaviors.openlayers_plus_behavior_blockswitcher = function(context) {
-  Drupal.OpenLayersPlusBlockswitcher.attach(context);
-};
+
+(function($) {
 
 /**
  * Blockswitcher is **NOT** an OpenLayers control.
  */
-Drupal.OpenLayersPlusBlockswitcher = {};
-Drupal.OpenLayersPlusBlockswitcher.layerStates = [];
+Drupal.behaviors.OpenLayersPlusBlockswitcher = {};
 
 /**
- * Initializes the blockswitcher and attaches to DOM elements.
- */
-Drupal.OpenLayersPlusBlockswitcher.attach = function(context) {
-  var data = $(context).data('openlayers');
-  if (data && data.map.behaviors.openlayers_plus_behavior_blockswitcher) {
-    this.map = data.openlayers;
-    this.overlay_style = (data.map.behaviors.openlayers_plus_behavior_blockswitcher.map.overlay_style) ? 
-      data.map.behaviors.openlayers_plus_behavior_blockswitcher.map.overlay_style : 'checkbox';
-    
-
-    // If behavior has requested display inside of map, respect it.
-    if (data.map.behaviors.openlayers_plus_behavior_blockswitcher.map.enabled == true) {
-      var block = $(data.map.behaviors.openlayers_plus_behavior_blockswitcher.block);
-      block.addClass(data.map.behaviors.openlayers_plus_behavior_blockswitcher.map.position);
-      $('.block-title', block).click(function() {
-        $(this).parents('div.block').toggleClass('expanded');
-        $(this).siblings('div.block-content').toggle();
-      });
-
-      $(context).append(block);
-
-      if (data.map.behaviors.openlayers_plus_behavior_blockswitcher.map.open == true) {
-        $('.block-title', block).click();
-      }
-    }
-
-    this.blockswitcher = $('div.openlayers-blockswitcher');
-
-    // Don't propagate click events to the map
-    // this doesn't catch events that are below the layer list
-    $('div.openlayers-blockswitcher').mousedown(function(evt) {
-      OpenLayers.Event.stop(evt);
-    });
-
-    data.openlayers.events.on({
-      "addlayer": this.redraw,
-      "changelayer": this.redraw,
-      "removelayer": this.redraw,
-      "changebaselayer": this.redraw,
-      scope: this
-    });
-
-    this.redraw();
-  }
-};
+ * Initializes the */
+Drupal.behaviors.OpenLayersPlusBlockswitcher = {
+ 'attach' : function(context, settings) {
+   
+   /*
+    * First the support functions
+    */
+   
 
 /**
  * Checks if the layer state has changed since the last redraw() call.
@@ -65,7 +25,7 @@ Drupal.OpenLayersPlusBlockswitcher.attach = function(context) {
  * Returns:
  * {Boolean} The layer state changed since the last redraw() call.
  */
-Drupal.OpenLayersPlusBlockswitcher.needsRedraw = function() {
+ Drupal.behaviors.OpenLayersPlusBlockswitcher.needsRedraw  = function() {
   if ( !this.layerStates.length || (this.map.layers.length != this.layerStates.length) ) {
     return true;
   }
@@ -82,7 +42,7 @@ Drupal.OpenLayersPlusBlockswitcher.needsRedraw = function() {
 /**
  * Redraws the blockswitcher to reflect the current state of layers.
  */
-Drupal.OpenLayersPlusBlockswitcher.redraw = function() {
+  Drupal.behaviors.OpenLayersPlusBlockswitcher.redraw = function() {
   if (this.needsRedraw()) {
     // Clear out previous layers
     $('.layers.base .layers-content div', this.blockswitcher).remove();
@@ -125,8 +85,8 @@ Drupal.OpenLayersPlusBlockswitcher.redraw = function() {
         // Add states and click handler
         if (baseLayer) {
           $(inputElem)
-            .click(function() { Drupal.OpenLayersPlusBlockswitcher.layerClick(this); })
-            .data('layer', layer);
+            .click(function() { Drupal.behaviors.OpenLayersPlusBlockswitcher.layerClick(this); })
+            .data('layer', layer)
           if (checked) {
             $(inputElem).addClass('activated');
           }
@@ -134,14 +94,14 @@ Drupal.OpenLayersPlusBlockswitcher.redraw = function() {
         else {
           if (this.overlay_style == 'checkbox') {
             $('input', inputElem)
-              .click(function() { Drupal.OpenLayersPlusBlockswitcher.layerClick(this); })
+              .click(function() { Drupal.behaviors.OpenLayersPlusBlockswitcher.layerClick(this); })
               .data('layer', layer)
               .attr('disabled', !baseLayer && !layer.inRange)
               .attr('checked', checked);
           }
           else if(this.overlay_style == 'radio') {
             $(inputElem)
-              .click(function() { Drupal.OpenLayersPlusBlockswitcher.layerClick(this); })
+              .click(function() { Drupal.behaviors.OpenLayersPlusBlockswitcher.layerClick(this); })
               .data('layer', layer)
               .attr('disabled', !layer.inRange);
             if (checked) {
@@ -150,7 +110,7 @@ Drupal.OpenLayersPlusBlockswitcher.redraw = function() {
           }
           // Set key styles
           if (layer.styleMap) {
-            css = this.styleMapToCSS(layer.styleMap);
+            css = Drupal.behaviors.OpenLayersPlusBlockswitcher.styleMapToCSS(layer.styleMap);
             $('span.key', inputElem).css(css);
           }
         }
@@ -162,7 +122,7 @@ Drupal.OpenLayersPlusBlockswitcher.redraw = function() {
 /**
  * Click handler that activates or deactivates a layer.
  */
-Drupal.OpenLayersPlusBlockswitcher.layerClick = function(element) {
+  Drupal.behaviors.OpenLayersPlusBlockswitcher.layerClick = function(element) {
   var layer = $(element).data('layer');
   if (layer.isBaseLayer) {
     $('.layers.base .layers-content .activated').removeClass('activated');
@@ -195,22 +155,69 @@ Drupal.OpenLayersPlusBlockswitcher.layerClick = function(element) {
   * {Object} An object with css properties and values that can be applied to an element
   *
   */
-Drupal.OpenLayersPlusBlockswitcher.styleMapToCSS = function (styleMap) {
-  css = {};
-  default_style = styleMap.styles['default'].defaultStyle;
-  if (default_style.fillColor === 'transparent' && typeof default_style.externalGraphic != 'undefined') {
-    css['background-image'] = 'url('+default_style.externalGraphic+')';
-    css['background-repeat'] = 'no-repeat';
-    css['background-color'] = 'transparent';
-    css.width = default_style.pointRadius * 2;
-    css.height = default_style.pointRadius * 2;
+  Drupal.behaviors.OpenLayersPlusBlockswitcher.styleMapToCSS = function(styleMap) {
+    css = {};
+    default_style = styleMap.styles['default'].defaultStyle;
+    if (default_style.fillColor === 'transparent' && typeof default_style.externalGraphic != 'undefined') {
+      css['background-image'] = 'url('+default_style.externalGraphic+')';
+      css['background-repeat'] = 'no-repeat';
+      css['background-color'] = 'transparent';
+      css.width = default_style.pointRadius * 2;
+      css.height = default_style.pointRadius * 2;
+    }
+    else {
+      css['background-color'] = default_style.fillColor;
+    }
+    if (default_style.strokeWidth > 0) {
+      css['border-color'] = default_style.strokeColor;
+    }
+    return css;
   }
-  else {
-    css['background-color'] = default_style.fillColor;
+ 
+
+  this.layerStates = [];
+   
+  var data = $(context).data('openlayers');
+  if (data && data.map.behaviors.openlayers_plus_behavior_blockswitcher) {
+    this.map = data.openlayers;
+    this.overlay_style = (data.map.behaviors.openlayers_plus_behavior_blockswitcher.overlay_style) ? 
+      data.map.behaviors.openlayers_plus_behavior_blockswitcher.overlay_style : 'checkbox';
+    
+
+    // If behavior has requested display inside of map, respect it.
+    if (data.map.behaviors.openlayers_plus_behavior_blockswitcher.enabled == true) {
+      var block = $(data.map.behaviors.openlayers_plus_behavior_blockswitcher.block);
+      block.addClass(data.map.behaviors.openlayers_plus_behavior_blockswitcher.position);
+      $('.block-title', block).click(function() {
+        $(this).parents('div.block').toggleClass('expanded');
+        $(this).siblings('div.block-content').toggle();
+      });
+
+      $(context).find('.olMapViewport').append(block);
+
+      if (data.map.behaviors.openlayers_plus_behavior_blockswitcher.open == true) {
+        $('.block-title', block).click();
+      }
+    }
+
+    this.blockswitcher = $('div.openlayers_plus-blockswitcher');
+
+    // Don't propagate click events to the map
+    // this doesn't catch events that are below the layer list
+    $('div.openlayers_plus-blockswitcher').mousedown(function(evt) {
+      OpenLayers.Event.stop(evt);
+    });
+
+    data.openlayers.events.on({
+      "addlayer": this.redraw,
+      "changelayer": this.redraw,
+      "removelayer": this.redraw,
+      "changebaselayer": this.redraw,
+      scope: this
+    });
+
+    this.redraw();
   }
-  if (default_style.strokeWidth > 0) {
-    css['border-color'] = default_style.strokeColor;
-  }
-  return css;
-};
+ }
+}
 })(jQuery);

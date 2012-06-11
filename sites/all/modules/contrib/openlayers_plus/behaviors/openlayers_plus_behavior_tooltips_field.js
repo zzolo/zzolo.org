@@ -2,7 +2,7 @@
 /**
  * Implementation of Drupal behavior.
  */
-Drupal.behaviors.openlayers_plus_behavior_tooltips = {
+Drupal.behaviors.openlayers_plus_behavior_tooltips_field = {
   'attach': function(context, settings) {
     Drupal.OpenLayersTooltips.attach(context);
   }
@@ -21,10 +21,10 @@ Drupal.OpenLayersTooltips.attach = function(context) {
     }
   };
 
-  if (data && data.map.behaviors.openlayers_plus_behavior_tooltips) {
+  if (data && data.map.behaviors.openlayers_plus_behavior_tooltips_field) {
     // Options
     var select_method = (data.map.behaviors
-        .openlayers_plus_behavior_tooltips.positioned) ?
+        .openlayers_plus_behavior_tooltips_field.positioned) ?
       'positionedSelect' : 'select';
     // Collect vector layers
     var vector_layers = [];
@@ -34,7 +34,7 @@ Drupal.OpenLayersTooltips.attach = function(context) {
         vector_layers.push(layer);
       }
     }
-
+	Drupal.settings.openlayers_plus_behavior_tooltips_field.field = data.map.behaviors.openlayers_plus_behavior_tooltips_field.field_displayed;
     // Add control
     var control = new OpenLayers.Control.SelectFeature(vector_layers, {
       activeByDefault: true,
@@ -84,15 +84,16 @@ Drupal.OpenLayersTooltips.click = function(feature) {
 };
 
 Drupal.OpenLayersTooltips.getToolTip = function(feature) {
+  var field = Drupal.settings.openlayers_plus_behavior_tooltips_field.field	
   var text = "<div class='openlayers-tooltip'>";
-  if (feature.attributes.name) {
-    text += "<div class='openlayers-tooltip-name'>" +
-      feature.attributes.name + "</div>";
-  }
-  if (feature.attributes.description) {
-    text += "<div class='openlayers-tooltip-description'>" +
-      feature.attributes.description + "</div>";
-  }
+    if (typeof feature.cluster != 'undefined') {
+		text += "<div class='openlayers-tooltip-name'>" +
+	    feature.cluster[0].attributes[field] + " (" + feature.attributes.count + ")</div>";
+    }
+	else if (typeof feature.attributes[field] != 'undefined') {
+		text += "<div class='openlayers-tooltip-name'>" +
+	    feature.attributes[field] + "</div>";
+	}
   text += "</div>";
   return $(text);
 }
@@ -103,6 +104,7 @@ Drupal.OpenLayersTooltips.select = function(feature) {
 };
 
 Drupal.OpenLayersTooltips.positionedSelect = function(feature) {
+	
   var tooltip = Drupal.OpenLayersTooltips.getToolTip(feature);
   var point  = new OpenLayers.LonLat(
     feature.geometry.x,
@@ -111,8 +113,8 @@ Drupal.OpenLayersTooltips.positionedSelect = function(feature) {
   $(tooltip).css({
     zIndex: '1000',
     position: 'absolute',
-    left: offset.x,
-    top: offset.y});
+	left: (offset.x - 60),
+    top: (offset.y - 50)});
   $(feature.layer.map.div).css({position:'relative'})
     .append(tooltip);
 };

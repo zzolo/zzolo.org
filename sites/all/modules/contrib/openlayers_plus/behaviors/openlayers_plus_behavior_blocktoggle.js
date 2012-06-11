@@ -1,58 +1,70 @@
-(function($) {
 /**
  * Implementation of Drupal behavior.
  */
-Drupal.behaviors.openlayers_plus_behavior_blocktoggle = function(context) {
-  Drupal.OpenLayersPlusBlocktoggle.attach(context);
-};
+//Drupal.behaviors.openlayers_plus_behavior_blocktoggle = function(context) {
+//  Drupal.OpenLayersPlusBlocktoggle.attach(context);
+//};
+
+(function($) {
+/**
+* Implementation of Drupal behavior.
+*/
+//Drupal.behaviors.openlayers_plus_behavior_blocktoggle = function(context) {
+  Drupal.openlayers.addBehavior('openlayers_plus_behavior_blocktoggle', function (data, options) {
+    Drupal.OpenLayersPlusBlocktoggle.attach(data, options);
+  });
 
 /**
- * Blocktoggle is **NOT** an OpenLayers control.
- */
+* Blocktoggle is **NOT** an OpenLayers control.
+*/
 Drupal.OpenLayersPlusBlocktoggle = {};
 Drupal.OpenLayersPlusBlocktoggle.layerStates = [];
 
 /**
+* Initializes the blocktoggle and attaches to DOM elements.
+*/
+Drupal.OpenLayersPlusBlocktoggle.attach = function(data, options) {
+/**
  * Initializes the blocktoggle and attaches to DOM elements.
  */
-Drupal.OpenLayersPlusBlocktoggle.attach = function(context) {
-  var data = $(context).data('openlayers');
+//Drupal.OpenLayersPlusBlocktoggle.attach = function(context) {
+//  var data = $(context).data('openlayers');
 
   if (data && data.map.behaviors.openlayers_plus_behavior_blocktoggle) {
 
     this.map = data.openlayers;
     this.layer_a = this.map.getLayersBy('drupalID', 
-      data.map.behaviors.openlayers_plus_behavior_blocktoggle.layer.a)[0]; 
+      options.a)[0]; 
     this.layer_b = this.map.getLayersBy('drupalID', 
-      data.map.behaviors.openlayers_plus_behavior_blocktoggle.layer.b)[0]; 
+    		options.b)[0]; 
 
     // If behavior has requested display inside of map, respect it.
-    if (data.map.behaviors.openlayers_plus_behavior_blocktoggle.map.enabled == true) {
-      var block = $(data.map.behaviors.openlayers_plus_behavior_blocktoggle.block);
+    if (options.enabled == true) {
+      var block = $(options.block);
 
-      block.addClass(data.map.behaviors.openlayers_plus_behavior_blocktoggle.map.position);
-      $(context).append(block);
+      block.addClass(options.position);
+      	$(data.openlayers.viewPortDiv).append(block);
     }
 
-    this.blocktoggle = $('div.openlayers-blocktoggle');
+    this.blocktoggle = $('div.block-openlayers_plus-blocktoggle');
     this.blocktoggle.data('layer_a', this.layer_a);
     this.blocktoggle.data('layer_b', this.layer_b);
 
     // Don't propagate click events to the map
     // this doesn't catch events that are below the layer list
-    $('div.openlayers-blocktoggle *').mousedown(function(evt) {
+    $('div.block-openlayers_plus-blocktoggle *').mousedown(function(evt) {
       OpenLayers.Event.stop(evt);
     });
 
     $('.openlayers-blocktoggle-a').text(
-      data.map.behaviors.openlayers_plus_behavior_blocktoggle.layer.a_label
+      data.map.behaviors.openlayers_plus_behavior_blocktoggle.a_label
     );
 
     $('.openlayers-blocktoggle-b').text(
-      data.map.behaviors.openlayers_plus_behavior_blocktoggle.layer.b_label
+      data.map.behaviors.openlayers_plus_behavior_blocktoggle.b_label
     );
 
-    $('div.openlayers-blocktoggle').toggle(
+    $('div.block-openlayers_plus-blocktoggle').toggle(
       function() {
         $(this).data('layer_a').setVisibility(false);
         $(this).data('layer_b').setVisibility(true);

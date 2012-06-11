@@ -1,11 +1,8 @@
-(function($) {
 /**
  * Implementation of Drupal behavior.
  */
-Drupal.behaviors.openlayers_plus_behavior_permalink = {
-  'attach': function(context, settings) {
-    Drupal.OpenLayersPermalink.attach(context);
-  }
+Drupal.behaviors.openlayers_plus_behavior_permalink = function(context) {
+  Drupal.OpenLayersPermalink.attach(context);
 };
 
 Drupal.OpenLayersPermalink = {};
@@ -276,4 +273,3 @@ OpenLayers.Control.PermalinkPlus = OpenLayers.Class(OpenLayers.Control.Permalink
 
   CLASS_NAME: "OpenLayers.Control.PermalinkPlus"
 });
-})(jQuery);

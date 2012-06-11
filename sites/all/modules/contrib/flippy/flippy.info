@@ -5,9 +5,9 @@ description = Allows administrators to define custom pagers for navigation in li
 files[] = flippy.tpl.php
 files[] = flippy.install
 files[] = flippy.module
-; Information added by drupal.org packaging script on 2012-02-29
-version = "7.x-1.0+0-dev"
+; Information added by drupal.org packaging script on 2012-02-28
+version = "7.x-1.0"
 core = "7.x"
 project = "flippy"
-datestamp = "1330474468"
+datestamp = "1330463143"
 

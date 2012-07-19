@@ -1,0 +1,6 @@
+name = 'Internet Justice League'
+description = 'The <a href="http://internetdefenseleague.org/">Internet Justice League</a> module brings the league to your site.'
+package = 'Super Hero'
+core = 7.x
+configure = admin/config/services/internet_justice_league
+tags[] = superheros

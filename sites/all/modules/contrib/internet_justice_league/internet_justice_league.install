@@ -1,0 +1,17 @@
+<?php
+/**
+ * @file
+ * Main install file for the internet_justice_league module.
+ */
+
+/**
+ * Implements internet_justice_league_uninstall().
+ */
+function internet_justice_league_uninstall() {
+  drupal_load('module', 'internet_justice_league');
+
+  $vars = internet_justice_league_variables();
+  foreach ($vars as $v => $var) {
+    variable_del($v);
+  }
+}

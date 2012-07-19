@@ -34,7 +34,7 @@
         
         // Masonry
         var $container = $('.masonry-container');
-        if ($container.size() > 0) {
+        if ($container.size() > 0 && typeof $container.imagesLoaded == 'function') {
           $container.imagesLoaded(function(){
             $container.masonry({
               itemSelector: '.block',
